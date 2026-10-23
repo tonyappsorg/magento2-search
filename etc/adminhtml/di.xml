@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Search\Block\Adminhtml\Term\Edit\Form">
+        <plugin name="tonyapps_search_promoted_field" type="Tonyapps\Search\Plugin\AddPromotedField"/>
+    </type>
+</config>

@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="search_query">
+        <column xsi:type="text" name="promoted_skus" nullable="true" comment="Comma-separated SKUs pinned to the top for this term"/>
+    </table>
+</schema>

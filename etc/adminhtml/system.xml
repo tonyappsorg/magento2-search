@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="catalog">
+            <group id="search">
+                <field id="tonyapps_fallback" translate="label comment" type="select" sortOrder="200" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Typo-Tolerant Fallback Search</label>
+                    <comment>When a search returns nothing, run it again with fuzzy matching (e.g. "jakcet" finds "jacket").</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="tonyapps_autocomplete_products" translate="label comment" type="text" sortOrder="210" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Products in Autocomplete</label>
+                    <comment>0 disables product suggestions.</comment>
+                    <validate>validate-digits</validate>
+                </field>
+                <field id="tonyapps_autocomplete_categories" translate="label comment" type="text" sortOrder="220" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Categories in Autocomplete</label>
+                    <comment>0 disables category suggestions.</comment>
+                    <validate>validate-digits</validate>
+                </field>
+                <field id="tonyapps_stopwords_add" translate="label comment" type="textarea" sortOrder="230" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Additional Stop Words</label>
+                    <comment>Comma or newline separated. Dropped from search queries on top of the built-in list for this store view's locale. No reindex needed.</comment>
+                </field>
+                <field id="tonyapps_stopwords_remove" translate="label comment" type="textarea" sortOrder="240" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Words to Keep</label>
+                    <comment>Built-in stop words that should stay searchable (e.g. "it" for an IT store).</comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

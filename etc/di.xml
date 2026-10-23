@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- One shared instance on both types: the adapter plugin flips the flag the query builder plugin reads. -->
+    <type name="Magento\Framework\Search\AdapterInterface">
+        <plugin name="tonyapps_search_fallback" type="Tonyapps\Search\Plugin\Fallback"/>
+    </type>
+    <type name="Magento\Elasticsearch\SearchAdapter\Query\Builder\MatchQuery">
+        <plugin name="tonyapps_search_fallback" type="Tonyapps\Search\Plugin\Fallback"/>
+    </type>
+    <type name="Magento\OpenSearch\SearchAdapter\Mapper">
+        <plugin name="tonyapps_search_promote" type="Tonyapps\Search\Plugin\Promote"/>
+    </type>
+    <!-- Stop words: core CSV list +/- per-store admin words. Same CSV location as core. -->
+    <preference for="Magento\Elasticsearch\SearchAdapter\Query\Preprocessor\Stopwords" type="Tonyapps\Search\Model\Preprocessor\Stopwords"/>
+    <type name="Tonyapps\Search\Model\Preprocessor\Stopwords">
+        <arguments>
+            <argument name="stopwordsModule" xsi:type="string">Magento_Elasticsearch</argument>
+            <argument name="stopwordsDirectory" xsi:type="string">stopwords</argument>
+        </arguments>
+    </type>
+    <type name="Magento\Search\Model\Autocomplete">
+        <arguments>
+            <argument name="dataProviders" xsi:type="array">
+                <item name="20" xsi:type="object">Tonyapps\Search\Model\Autocomplete\CategoryDataProvider</item>
+                <item name="30" xsi:type="object">Tonyapps\Search\Model\Autocomplete\ProductDataProvider</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Tonyapps\Search\Model\Autocomplete\ProductDataProvider">
+        <arguments>
+            <argument name="collectionFactory" xsi:type="object">Magento\CatalogSearch\Model\ResourceModel\Fulltext\SearchCollectionFactory</argument>
+        </arguments>
+    </type>
+</config>
