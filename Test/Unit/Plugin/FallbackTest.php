@@ -9,6 +9,7 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Search\AdapterInterface;
 use Magento\Framework\Search\RequestInterface;
 use Magento\Framework\Search\Response\QueryResponse;
+use Magento\Search\Model\Query;
 use PHPUnit\Framework\TestCase;
 use Tonyapps\Search\Plugin\Fallback;
 
@@ -98,6 +99,24 @@ class FallbackTest extends TestCase
         $request = $this->createMock(RequestInterface::class);
         $request->method('getName')->willReturn($name);
         return $request;
+    }
+
+    public function testTermRescuedByFuzzyRetryIsSavedWithZeroResults(): void
+    {
+        $calls = 0;
+        $proceed = function () use (&$calls) {
+            return $this->response(++$calls === 1 ? 0 : 23);
+        };
+        $this->plugin->aroundQuery($this->adapter, $proceed, $this->request('quick_search_container'));
+
+        $this->assertSame([0], $this->plugin->beforeSaveNumResults($this->createMock(Query::class), 23));
+    }
+
+    public function testExactHitsKeepTheirCount(): void
+    {
+        $this->plugin->aroundQuery($this->adapter, fn () => $this->response(23), $this->request('quick_search_container'));
+
+        $this->assertSame([23], $this->plugin->beforeSaveNumResults($this->createMock(Query::class), 23));
     }
 
     private function response(int $total): QueryResponse

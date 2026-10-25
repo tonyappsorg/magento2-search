@@ -11,7 +11,10 @@ use Magento\Search\Model\QueryFactory;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 
-/** Categories whose name contains the typed text, limited to the current store's tree. */
+/**
+ * Categories whose name contains the typed text, limited to the current store's tree.
+ * Titles carry the path below the store root ("Men › Tops › Jackets") so same-named categories can be told apart.
+ */
 class CategoryDataProvider implements DataProviderInterface
 {
     public function __construct(
@@ -41,15 +44,54 @@ class CategoryDataProvider implements DataProviderInterface
             ->addUrlRewriteToResult()
             ->setPageSize($limit);
 
+        $rootId = (int)$store->getRootCategoryId();
+        $ancestorNames = $this->getAncestorNames($collection, $rootId, (int)$store->getId());
         $items = [];
         foreach ($collection as $category) {
+            $path = [];
+            foreach ($this->getAncestorIds($category->getPath(), $rootId) as $id) {
+                $path[] = $ancestorNames[$id] ?? '';
+            }
+            $path[] = $category->getName();
             $items[] = $this->itemFactory->create([
-                'title' => $category->getName(),
+                'title' => implode(' › ', array_filter($path, 'strlen')),
                 'url' => $category->getUrl(),
                 'label' => __('Category')->render(),
                 'row_class' => 'tonyapps-qs-category',
             ]);
         }
         return $items;
+    }
+
+    /** @return array<int, string> names of every ancestor below the store root, keyed by ID */
+    private function getAncestorNames(iterable $categories, int $rootId, int $storeId): array
+    {
+        $ids = [];
+        foreach ($categories as $category) {
+            foreach ($this->getAncestorIds($category->getPath(), $rootId) as $id) {
+                $ids[$id] = true;
+            }
+        }
+        if (!$ids) {
+            return [];
+        }
+
+        $names = [];
+        $ancestors = $this->collectionFactory->create()
+            ->setStoreId($storeId)
+            ->addAttributeToSelect('name')
+            ->addIdFilter(array_keys($ids));
+        foreach ($ancestors as $ancestor) {
+            $names[(int)$ancestor->getId()] = (string)$ancestor->getName();
+        }
+        return $names;
+    }
+
+    /** "1/2/11/12/14" with root 2 -> [11, 12]: the ancestors between the store root and the category. */
+    private function getAncestorIds(string $path, int $rootId): array
+    {
+        $ids = array_map('intval', explode('/', $path));
+        $rootPos = array_search($rootId, $ids, true);
+        return $rootPos === false ? [] : array_slice($ids, $rootPos + 1, -1);
     }
 }

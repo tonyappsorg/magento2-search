@@ -12,8 +12,9 @@ Core Magento plus OpenSearch already handles most of the feature list. This modu
 | "Did you mean" / related terms | Core: **Catalog > Catalog Search > Enable Search Suggestions / Recommendations** (on by default). |
 | Partial SKU / name | Core `quick_search_container` already runs `match_phrase_prefix` on name and sku. |
 | Long-tail queries | Core. Minimum Should Match is empty by default, so a query matches when any one of its words matches. |
-| **Product + category autocomplete** | `Model\Autocomplete\{Product,Category}DataProvider` are added to core `Magento\Search\Model\Autocomplete`. The `form-mini-mixin.js` mixin shows an image and price in each row, and clicking a row opens that page. |
-| **Typo-tolerant fallback** | `Plugin\Fallback`. When a quick search finds nothing, it runs the same search once more with `fuzziness: AUTO`. Exact matching stays the default, so "shirt" won't turn into "short". |
+| **Product + category autocomplete** | `Model\Autocomplete\{Product,Category}DataProvider` are added to core `Magento\Search\Model\Autocomplete`. The `form-mini-mixin.js` mixin shows an image and price in each row, and clicking a row (or Enter on it) opens that page. Category rows show their path below the store root ("Men › Tops › Jackets"), so same-named categories can be told apart. |
+| **Typo-tolerant fallback** | `Plugin\Fallback`. When a quick search finds nothing, it runs the same search once more with `fuzziness: AUTO`. Exact matching stays the default, so "shirt" won't turn into "short". A term rescued this way is saved with **0 results**, so the typo is never suggested and shows in **Marketing > Search Terms** as a 0-result term (a candidate for a synonym). |
+| **Search-term rows for correct words** | `Plugin\AddHistoryTerms`. With "Enable Search Suggestions" on, core only shows the OpenSearch suggester's corrections, so a correctly spelled "jacket" got no term row. Core's own search-history terms ("jacket (23)") now come first, then the corrections, deduplicated and capped at the Autocomplete Limit. |
 | **Promoted products** | `Plugin\Promote` plus a new `search_query.promoted_skus` column. Add SKUs on **Marketing > Search Terms > edit term**. The listed products are shown first, in the order you list them, even if they don't contain the search term. Visibility, category, price and layered-navigation filters still apply. |
 
 ## Configuration
@@ -43,6 +44,18 @@ bin/magento setup:upgrade
 vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist app/code/Tonyapps/Search/Test/Unit
 ```
 
+* Correction rows from OpenSearch's suggester are core and can be odd stems ("lavend", "lap"). Turn them off with **Enable Search Suggestions = No**; the history terms stay.
+
+## Status (2026-10-25): done
+
+Browser check (headless Chromium, desktop and 390px wide) on 2026-10-25:
+* ArrowDown to a product row fills the input and selects the row. Enter opens that product.
+* Enter on a core term row, or with nothing selected, runs a normal search.
+* Escape closes the dropdown. Clicking a category row opens the category. No JS errors.
+* At 390px the dropdown fits the viewport with no sideways scroll.
+* Fixed during the check: "jacket" showed two identical "Jackets" category rows (Men and Women). Rows now show the full path.
+* Added after the check: history term rows for correctly spelled words ("jacket" → "jacket (23)", "24-" → "24-MB0 (8)"), and typos rescued by the fallback are saved with 0 results ("jakcet" still finds 13 products on the page but is no longer suggested). 15 unit tests pass, and the browser run passes again, including Enter on a term row.
+
 ## Status (2026-09-29)
 
 Verified live in DDEV on Luma with sample data:
@@ -57,4 +70,3 @@ Verified live in DDEV on Luma with sample data:
 * No exceptions were logged.
 * Unit tests: 9 pass (fallback retry: once, only on 0 hits, flag reset even on error; query rewrites; stop words).
 
-Not checked yet: keyboard navigation and Enter on a product row in a real browser.

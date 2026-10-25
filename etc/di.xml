@@ -1,10 +1,13 @@
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <!-- One shared instance on both types: the adapter plugin flips the flag the query builder plugin reads. -->
+    <!-- One shared instance on all three types: the adapter plugin flips the flags the query builder and Query plugins read. -->
     <type name="Magento\Framework\Search\AdapterInterface">
         <plugin name="tonyapps_search_fallback" type="Tonyapps\Search\Plugin\Fallback"/>
     </type>
     <type name="Magento\Elasticsearch\SearchAdapter\Query\Builder\MatchQuery">
+        <plugin name="tonyapps_search_fallback" type="Tonyapps\Search\Plugin\Fallback"/>
+    </type>
+    <type name="Magento\Search\Model\Query">
         <plugin name="tonyapps_search_fallback" type="Tonyapps\Search\Plugin\Fallback"/>
     </type>
     <type name="Magento\OpenSearch\SearchAdapter\Mapper">
@@ -17,6 +20,9 @@
             <argument name="stopwordsModule" xsi:type="string">Magento_Elasticsearch</argument>
             <argument name="stopwordsDirectory" xsi:type="string">stopwords</argument>
         </arguments>
+    </type>
+    <type name="Magento\AdvancedSearch\Model\DataProvider\AutocompleteSuggestions">
+        <plugin name="tonyapps_search_history_terms" type="Tonyapps\Search\Plugin\AddHistoryTerms"/>
     </type>
     <type name="Magento\Search\Model\Autocomplete">
         <arguments>
