@@ -7,6 +7,8 @@ use Magento\Elasticsearch\SearchAdapter\Query\Builder\MatchQuery;
 use Magento\Framework\Api\Search\AggregationInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Search\AdapterInterface;
+use Magento\Framework\Search\Request\Query\BoolExpression;
+use Magento\Framework\Search\Request\QueryInterface;
 use Magento\Framework\Search\RequestInterface;
 use Magento\Framework\Search\Response\QueryResponse;
 use Magento\Search\Model\Query;
@@ -94,11 +96,70 @@ class FallbackTest extends TestCase
         $this->assertSame(self::TEXT_QUERY, $this->plugin->afterBuild($this->matchQuery, self::TEXT_QUERY));
     }
 
-    private function request(string $name): RequestInterface
+    /** @param string[] $must bound "must" clauses, as left after core strips unbound filters */
+    private function request(string $name, array $must = ['visibility']): RequestInterface
     {
+        $clauses = array_map(function (string $clauseName) {
+            $clause = $this->createMock(QueryInterface::class);
+            $clause->method('getName')->willReturn($clauseName);
+            return $clause;
+        }, $must);
+        $query = new BoolExpression($name, 1, $clauses, [], []);
+
         $request = $this->createMock(RequestInterface::class);
         $request->method('getName')->willReturn($name);
+        $request->method('getQuery')->willReturn($query);
         return $request;
+    }
+
+    public function testNoRetryWhenShopperFiltersEmptiedThePage(): void
+    {
+        $requests = [];
+        $proceed = function (RequestInterface $request) use (&$requests) {
+            $requests[] = $request;
+            // Exact term matches 8 products overall, none within the price filter.
+            return $this->response($this->isFiltered($request) ? 0 : 8);
+        };
+
+        $response = $this->plugin->aroundQuery($this->adapter, $proceed, $this->request('quick_search_container', ['visibility', 'price']));
+
+        $this->assertSame(0, $response->getTotal());
+        $this->assertCount(2, $requests, 'filtered search + one unfiltered check, no fuzzy retry');
+        $this->assertFalse($this->isFiltered($requests[1]));
+        $this->assertSame(1, $requests[1]->getSize());
+    }
+
+    public function testMisspeltTermStillRetriesWithTheFiltersKept(): void
+    {
+        $requests = [];
+        $proceed = function (RequestInterface $request) use (&$requests) {
+            $requests[] = $request;
+            // Exact "jakcet" matches nothing anywhere; the fuzzy retry finds 1 in the filtered category.
+            return $this->response(count($requests) === 3 ? 1 : 0);
+        };
+
+        $response = $this->plugin->aroundQuery($this->adapter, $proceed, $this->request('quick_search_container', ['visibility', 'category']));
+
+        $this->assertSame(1, $response->getTotal());
+        $this->assertCount(3, $requests);
+        $this->assertTrue($this->isFiltered($requests[2]), 'retry keeps the shopper\'s filter');
+    }
+
+    private function isFiltered(RequestInterface $request): bool
+    {
+        return count($request->getQuery()->getMust()) > 1;
+    }
+
+    public function testRescuedFlagDoesNotLeakIntoTheNextSearch(): void
+    {
+        $calls = 0;
+        $this->plugin->aroundQuery($this->adapter, function () use (&$calls) {
+            return $this->response(++$calls === 1 ? 0 : 23);
+        }, $this->request('quick_search_container'));
+        // Same process, next shopper, exact hits.
+        $this->plugin->aroundQuery($this->adapter, fn () => $this->response(8), $this->request('quick_search_container'));
+
+        $this->assertSame([8], $this->plugin->beforeSaveNumResults($this->createMock(Query::class), 8));
     }
 
     public function testTermRescuedByFuzzyRetryIsSavedWithZeroResults(): void
