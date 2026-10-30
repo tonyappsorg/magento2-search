@@ -31,6 +31,10 @@ Core Magento plus OpenSearch already handles most of the feature list. This modu
 * Core caches the stop word list under one cache key for all locales. On a store with several languages, the first locale cached is used for up to 15 minutes. This is not fixed here.
 * Promotions are read from the `q` request parameter through `QueryFactory`, so they don't apply to GraphQL search.
 
+## 2026-10-30 review fixes
+
+- On 2.4.8, core caches the result pages of popular search terms in the full page cache (`Result\Index::getCacheableResult`). Saving a search term whose Promoted SKUs changed now cleans the `full_page` cache, so the change shows straight away.
+
 ## Install
 
 ```
